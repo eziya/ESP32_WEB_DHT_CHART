@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Temperature+Humdity Monitoring</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/css/bootstrap-datetimepicker.min.css">
+  <!-- Bootstrap -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <!-- https://eonasdan.github.io/bootstrap-datetimepicker/ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/js/bootstrap-datetimepicker.min.js"></script>
+  <!-- High Chart -->
+  <script src="http://code.highcharts.com/highcharts.js"></script>
+  <script src="http://code.highcharts.com/modules/exporting.js"></script>
+  <style> .the-table {
+    table-layout: fixed;
+    word-wrap: break-word;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="jumbotron">
+      <h2>Temperature+Humidity Monitoring System</h2>
+      <p>Please use below URLs to use monitor temperature and humidity</p>
+    </div>
+    <div class="col-md-12">
+      <h3>Current temperature &amp; humidity</h3>
+      <table class="table-responsive table-condensed">
+        <tbody>
+          <tr>
+            <td><img class="img-responsive" src="img/temp.png" alt="temperature and humidity" width="90" height="90"></td>
+            <td>
+              <h2 class="current-temperature">20<small>℃</small>
+              </h2>
+            </td>
+            <td style="width: 20px"></td>
+            <td><img class="img-responsive" src="img/humid.png" alt="temperature and humidity" width="90" height="90"></td>
+            <td>
+              <h2 class="current-humidity">45<small>%</small>
+              </h2>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col-md-12">
+      <div>
+        <div class="col-md-6" id="chartTemp" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+        <div class="col-md-6" id="chartHumid" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <h2>Sample URLs</h2>
+      <table class="table-responsive table-striped table-bordered table-condensed the-table">
+        <tbody>
+          <tr>
+            <th>Data type</th>
+            <th>URL</th>
+          </tr>
+          <tr>
+            <td>Current temperature</td>
+            <td><a href="currenttemp">http://[YOUR IP]/currenttemp</a></td>
+          </tr>
+          <tr>
+            <td>Daily temperature</td>
+            <td><a href="dailytemp">http://[YOUR IP]/dailytemp</a></td>
+          </tr>
+          <tr>
+            <td>Current humidity</td>
+            <td><a href="currenthumid">http://[YOUR IP]/currenthumid</a></td>
+          </tr>
+          <tr>
+            <td>Daily humidity</td>
+            <td><a href="dailyhumid">http://[YOUR IP]/dailyhumid</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <br>
+      <div class="col-md-6 alert alert-warning alert-dismissable fade in">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
+        <strong>*</strong>This service maintains recent 24 hours data only.</div>
+    </div>
+    <!--
+    <div class="col-md-12">
+        <h2>Videos</h2>
+        <div class="embed-responsive embed-responsive-16by9">
+            <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/qrVEgOBC_E0"></iframe>
+        </div>
+    </div>
+    -->
+  </div>
+  <script type="text/javascript">
+    var chartTemp = null;
+    var chartHumid = null;
+
+    function initChart() {
+      var optionsTemp = {
+        chart: {
+          type: 'area'
+        },
+        title: {
+          text: 'Daily temperature'
+        },
+        /*subtitle: {
+         text: ''
+         },*/
+        xAxis: {
+          allowDecimals: false,
+          labels: {
+            formatter: function() {
+              return this.value; // clean, unformatted number for year
+            }
+          }
+        },
+        yAxis: {
+          title: {
+            text: 'Temperature(℃)'
+          },
+          labels: {
+            formatter: function() {
+              return this.value;
+            }
+          }
+        },
+        tooltip: {
+          pointFormat: '<b>{point.y:,.1f}</b>'
+        },
+        series: [{
+          name: 'Temperature',
+          color: '#FF6600',
+          data: []
+        }]
+      };
+      var optionsHumid = {
+        chart: {
+          type: 'area'
+        },
+        title: {
+          text: 'Daily humidity'
+        },
+        /*subtitle: {
+         text: ''
+         },*/
+        xAxis: {
+          allowDecimals: false,
+          labels: {
+            formatter: function() {
+              return this.value; // clean, unformatted number for year
+            }
+          }
+        },
+        yAxis: {
+          title: {
+            text: 'Humidity(%)'
+          },
+          labels: {
+            formatter: function() {
+              return this.value;
+            }
+          }
+        },
+        tooltip: {
+          pointFormat: '<b>{point.y:,.1f}</b>'
+        },
+        series: [{
+          name: 'Humidity',
+          data: []
+        }]
+      };
+      chartTemp = new Highcharts.chart('chartTemp', optionsTemp);
+      chartHumid = new Highcharts.chart('chartHumid', optionsHumid);
+    }
+
+    function initTempHumidity() {
+      $.ajax({
+        url: '/currenttemp',
+        success: function(data) {
+          <!-- {'time':'2018-12-12 01:01:01', 'temperature':'20'} -->
+          if (data.temperature) $('.current-temperature').html(data.temperature + '<small> ℃</small>');
+        }
+      });
+      $.ajax({
+        url: '/currenthumid',
+        success: function(data) {
+          <!-- {'time':'2018-12-12 01:01:01', 'humidity':'20'} -->
+          if (data.humidity) $('.current-humidity').html(data.humidity + '<small> %</small>');
+        }
+      });
+    }
+
+    function renderChart() {
+      $.ajax({
+        url: '/dailytemp',
+        success: function(data) {
+          var arrCollectTm = $.map(data, function(item, index) {
+            var tempDate = new Date(item.time);
+            //"Tue Nov 27 2018 22:05:27 GMT+0900"
+            var localdate = tempDate.toString().split(" ")[4];
+            return [localdate];
+          });
+          var arrValue = $.map(data, function(item, index) {
+            return [Number(item.temperature)];
+          });
+          chartTemp.xAxis[0].setCategories(arrCollectTm);
+          chartTemp.series[0].setData(arrValue);
+        }
+      });
+      $.ajax({
+        url: '/dailyhumid',
+        success: function(data) {
+          var arrCollectTm = $.map(data, function(item, index) {
+            var tempDate = new Date(item.time);
+            //"Tue Nov 27 2018 22:05:27 GMT+0900"
+            var localdate = tempDate.toString().split(" ")[4];
+            return [localdate];
+          });
+          var arrValue = $.map(data, function(item, index) {
+            return [Number(item.humidity)];
+          });
+          chartHumid.xAxis[0].setCategories(arrCollectTm);
+          chartHumid.series[0].setData(arrValue);
+        }
+      });
+    }
+    $(document).ready(function() {
+      initTempHumidity();
+      initChart();
+      renderChart();
+    });
+  </script>  
+</body>
+
+</html>
