@@ -1,18 +1,13 @@
 #include <Arduino.h>
 #include <Ticker.h>
-
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
-
 #include <WiFiUdp.h>
 #include <NTPClient.h>
-
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
-#include <DHT_U.h>
 #include <Wire.h>
 #include <RtcDS3231.h>
+#include "PietteTech_DHT.h"
 
 #define WIFI_SSID ""
 #define WIFI_PWD ""
@@ -22,9 +17,9 @@
 #define DHT_GND 15
 
 #define DHTTYPE DHT22 /* DHT11, DHT22, DHT21 */
-#define TICKER_PERIOD 60
+#define TICKER_PERIOD 600
 #define TIME_ZONE 9
-#define MAX_DATA_SIZE 1440
+#define MAX_DATA_SIZE 144
 
 typedef struct
 {
@@ -33,19 +28,11 @@ typedef struct
   float humidity;
 } TempHumidity;
 
-int dataIndex = 0;
-TempHumidity data[MAX_DATA_SIZE];
-
-bool tickerFlag = true;
-Ticker ticker;
-AsyncWebServer server(80);
-DHT_Unified dht(DHT_DATA, DHTTYPE);
-RtcDS3231<TwoWire> Rtc(Wire);
-
 void tickerHandler(void);
 void initWiFi(void);
 void initRTC(void);
 void initDHT(void);
+void dhtWrapper();
 void gatherData(void);
 void initWebServer(void);
 void notFound(AsyncWebServerRequest *request);
@@ -53,6 +40,15 @@ void sendCurrentTemp(AsyncWebServerRequest *request);
 void sendDailyTemp(AsyncWebServerRequest *request);
 void sendCurrentHumidity(AsyncWebServerRequest *request);
 void sendDailyHumidity(AsyncWebServerRequest *request);
+
+int dataIndex = 0;
+TempHumidity data[MAX_DATA_SIZE];
+
+bool tickerFlag = true;
+Ticker ticker;
+AsyncWebServer server(80);
+PietteTech_DHT DHT(DHT_DATA, DHT22, dhtWrapper);
+RtcDS3231<TwoWire> Rtc(Wire);
 
 void setup()
 {
@@ -132,22 +128,10 @@ void initDHT()
   pinMode(DHT_PWR, OUTPUT);
   pinMode(DHT_GND, OUTPUT);  
   delay(2000);
+}
 
-  /* Initialize DHT22 */
-  dht.begin();
-
-  sensor_t sensor;
-  dht.temperature().getSensor(&sensor);
-  Serial.println("------------------------------------");
-  Serial.println("Temperature");
-  Serial.print("Sensor:       ");
-  Serial.println(sensor.name);
-  
-  dht.humidity().getSensor(&sensor);
-  Serial.println("------------------------------------");
-  Serial.println("Humidity");
-  Serial.print("Sensor:       ");
-  Serial.println(sensor.name);  
+void dhtWrapper() {
+    DHT.isrCallback();
 }
 
 void gatherData()
@@ -163,24 +147,13 @@ void gatherData()
     }
     dataIndex = MAX_DATA_SIZE - 1;
   }
-    
-  sensors_event_t event;
 
-  dht.temperature().getEvent(&event);
-  if (isnan(event.temperature)) 
+  int result = DHT.acquireAndWait(0);
+  if(result == DHTLIB_OK)
   {
-    Serial.println("Temp. sensor data...FAILED");
-    return;
+    data[dataIndex].temperature = DHT.getCelsius();
+    data[dataIndex].humidity = DHT.getHumidity();
   }
-  data[dataIndex].temperature = event.temperature;
-
-  dht.humidity().getEvent(&event);
-  if (isnan(event.relative_humidity)) 
-  {
-    Serial.println("Humidity sensor data...FAILED");
-    return;
-  }
-  data[dataIndex].humidity = event.relative_humidity;
 
   if (!Rtc.IsDateTimeValid())
   {
